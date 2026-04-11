@@ -19,7 +19,7 @@ class ICollection {
         virtual auto remove(size_t idx) -> std::optional<T> = 0;
         virtual auto insert(size_t idx, T value) -> std::optional<T> = 0;
         virtual auto swap(size_t idx, T& swap) -> bool = 0;
-        virtual auto find(T& value) -> std::optional<size_t> = 0;
+        virtual auto search(std::function<bool(T&)> predicate) -> std::optional<size_t> = 0;
         virtual auto clear() -> void = 0;
         virtual ~ICollection() = default;
 };

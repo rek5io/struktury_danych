@@ -55,6 +55,10 @@ class LinkedList: public ICollection<T> {
         }
 
     public:
+        LinkedList& operator=(const LinkedList<T>&) = delete;
+        LinkedList(LinkedList<T>&&) noexcept = default;
+        LinkedList& operator=(LinkedList<T>&&) noexcept = default;
+
         static auto init() -> LinkedList<T> {
             LinkedList<T> l;
             
@@ -63,6 +67,46 @@ class LinkedList: public ICollection<T> {
             l.len = 0;
 
             return l;
+        }
+
+        LinkedList clone() {
+            LinkedList result;
+
+            if (!head) {
+                result.head = nullptr;
+                result.tail = nullptr;
+                result.len = 0;
+                return result;
+            }
+
+            result.head = new Node<T>;
+            result.head->value = head->value;
+            result.head->prev = nullptr;
+            result.head->next = nullptr;
+
+            Node<T>* curr_old = head->next;
+            Node<T>* curr_new = result.head;
+
+            result.len = 1;
+
+            while (curr_old) {
+                Node<T>* new_node = new Node<T>;
+
+                new_node->value = curr_old->value;
+                new_node->next = nullptr;
+                new_node->prev = curr_new;
+
+                curr_new->next = new_node;
+
+                curr_new = new_node;
+                curr_old = curr_old->next;
+
+                result.len++;
+            }
+
+            result.tail = curr_new;
+
+            return result;
         }
 
         auto get_len() -> size_t {
@@ -209,12 +253,12 @@ class LinkedList: public ICollection<T> {
             return true;
         }
 
-        auto find(T& value) -> std::optional<size_t> {
+        auto search(std::function<bool(T&)> predicate) -> std::optional<size_t> {
             size_t idx = 0;
             auto current = this->head;
 
             while (current != nullptr) {
-                if (current->value == value) {
+                if (predicate(current->value)) {
                     return idx; 
                 }
 

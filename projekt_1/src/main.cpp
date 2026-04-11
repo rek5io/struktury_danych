@@ -5,10 +5,70 @@
 
 auto randgen(int min, int max) -> int {
     static std::mt19937 rnd(time(nullptr));
-    return std::uniform_int_distribution<>(min, max)(rnd);
+    return std::normal_distribution<>(min, max)(rnd);
 }
 
 namespace tests {
+    auto sl_test() -> void {
+        std::println("==[sl test]============");
+
+        auto list = SingleList<int>::init();
+        
+        list.push_back(10);
+        list.push_back(20);
+        list.push_back(30);
+
+        list.push_front(5);
+        list.push_front(1);
+        list.push_front(6);
+
+        list.insert(0, 69);
+        list.insert(2, 42);
+
+        int i = 33;
+        std::println("pre swap: {} {}", i, list.get_ref_front()->get()); 
+        list.swap(0, i);
+        std::println("after swap: {} {}", i, list.get_ref_front()->get());
+
+        std::println("ref front: {}", list.get_ref_front()->get());
+        std::println("ref back: {}", list.get_ref_back()->get());
+
+        std::println("front: {}", list.pop_front().value());
+        std::println("back: {}", list.pop_back().value());
+
+        std::println("rm 3: {}", list.remove(3).value());
+
+        for (size_t i = 0; i < list.get_len(); ++i) {
+            if (auto val = list.get_ref(i)) {
+                std::println("idx {}: {}", i, val->get());
+            }
+        }
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < 10000; i++) {
+            list.push_back(i);
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        auto took = std::chrono::duration<double, std::milli>(end - start).count();
+        std::println("adding back 10000 elements took: {} ms", took);
+
+        start = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < 10000; i++) {
+            list.push_front(i);
+        }
+
+        end = std::chrono::high_resolution_clock::now();
+
+        took = std::chrono::duration<double, std::milli>(end - start).count();
+        std::println("adding front 10000 elements took: {} ms", took);
+
+        std::println("=======================");
+    }
+
     auto ll_test() -> void {
         std::println("==[ll test]============");
 
@@ -112,8 +172,7 @@ namespace tests {
             vec.push_back(i);
         }
 
-        int v = 69;
-        std::println("69 at {}", vec.find(v).value());
+        std::println("69 at {}", vec.search([](int& x) { return x == 69; }).value());
 
         auto end = std::chrono::high_resolution_clock::now();
 
@@ -163,165 +222,181 @@ namespace benchmark {
     static size_t SIZES[] = {
         5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000,
         45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000,
-        85000, 90000, 95000, 100000
+        85000, 90000, 95000, 100000, 500000, 1000000, 5000000
     };
 
     static size_t runs_count = 100;
+    static size_t sizes_count = 23;
 
-    auto bench_ll() -> void {
-        for (size_t s = 0; s < 20; s++) { 
+    template<template<typename> class T>
+    auto bench() -> void {
+        long took = 0;
+
+        for (size_t s = 0; s < sizes_count; s++) {     
             size_t size = SIZES[s];
 
-            std::println("\n");
-            std::print("ll pshb run of {} elements got times = {{", size);
+            auto ll = T<int>::init();
 
-            for (size_t c = 0; c < runs_count; c++) {
-                auto ll = LinkedList<int>::init();
-
-                for (size_t i = 0; i < size; i++) {
-                    ll.push_back(i); 
-                }
-
-                auto start = std::chrono::high_resolution_clock::now();
-                ll.push_back(42); 
-                auto end = std::chrono::high_resolution_clock::now();
-
-                auto took = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::print("{}, ", took);
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
             }
 
-            std::print("}}");
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                l2.push_back(42); 
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("pshb {} {}", size, took / runs_count);
+            took = 0;
         }
 
-        for (size_t s = 0; s < 20; s++) { 
+        for (size_t s = 0; s < sizes_count; s++) {     
             size_t size = SIZES[s];
 
-            std::println("\n");
-            std::print("ll pshf run of {} elements got times = {{", size);
+            auto ll = T<int>::init();
 
-            for (size_t c = 0; c < runs_count; c++) {
-                auto ll = LinkedList<int>::init();
-
-                for (size_t i = 0; i < size; i++) {
-                    ll.push_back(i); 
-                }
-
-                auto start = std::chrono::high_resolution_clock::now();
-                ll.push_front(69); 
-                auto end = std::chrono::high_resolution_clock::now();
-
-                auto took = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::print("{}, ", took);
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
             }
 
-            std::print("}}");
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                l2.push_front(42); 
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("pshf {} {}", size, took / runs_count);
+            took = 0;
         }
 
-        for (size_t s = 0; s < 20; s++) { 
+        for (size_t s = 0; s < sizes_count; s++) {     
             size_t size = SIZES[s];
 
-            std::println("\n");
-            std::print("ll popb run of {} elements got times = {{", size);
+            auto ll = T<int>::init();
 
-            for (size_t c = 0; c < runs_count; c++) {
-                auto ll = LinkedList<int>::init();
-
-                for (size_t i = 0; i < size; i++) {
-                    ll.push_back(i); 
-                }
-
-                auto start = std::chrono::high_resolution_clock::now();
-                ll.pop_back(); 
-                auto end = std::chrono::high_resolution_clock::now();
-
-                auto took = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::print("{}, ", took);
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
             }
 
-            std::print("}}");
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                l2.pop_back(); 
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("ppob {} {}", size, took / runs_count);
+            took = 0;
         }
 
-        for (size_t s = 0; s < 20; s++) { 
+        for (size_t s = 0; s < sizes_count; s++) {     
             size_t size = SIZES[s];
 
-            std::println("\n");
-            std::print("ll popf run of {} elements got times = {{", size);
+            auto ll = T<int>::init();
 
-            for (size_t c = 0; c < runs_count; c++) {
-                auto ll = LinkedList<int>::init();
-
-                for (size_t i = 0; i < size; i++) {
-                    ll.push_back(i); 
-                }
-
-                auto start = std::chrono::high_resolution_clock::now();
-                ll.pop_front(); 
-                auto end = std::chrono::high_resolution_clock::now();
-
-                auto took = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::print("{}, ", took);
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
             }
 
-            std::print("}}");
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                l2.pop_front(); 
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("ppof {} {}", size, took / runs_count);
+            took = 0;
         }
 
-        for (size_t s = 0; s < 20; s++) { 
+        for (size_t s = 0; s < sizes_count; s++) {     
             size_t size = SIZES[s];
 
-            std::println("\n");
-            std::print("ll insert run of {} elements got times = {{", size);
+            auto ll = T<int>::init();
 
-            for (size_t c = 0; c < runs_count; c++) {
-                auto ll = LinkedList<int>::init();
-
-                for (size_t i = 0; i < size; i++) {
-                    ll.push_back(i); 
-                }
-
-                auto start = std::chrono::high_resolution_clock::now();
-                ll.insert(randgen(0, size - 1), 42);
-                auto end = std::chrono::high_resolution_clock::now();
-
-                auto took = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::print("{}, ", took);
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
             }
 
-            std::print("}}");
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                l2.insert(randgen(0, size - 1), 42); 
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("insert {} {}", size, took / runs_count);
+            took = 0;
         }
 
-        for (size_t s = 0; s < 20; s++) { 
+        for (size_t s = 0; s < sizes_count; s++) {     
             size_t size = SIZES[s];
 
-            std::println("\n");
-            std::print("ll remove run of {} elements got times = {{", size);
+            auto ll = T<int>::init();
 
-            for (size_t c = 0; c < runs_count; c++) {
-                auto ll = LinkedList<int>::init();
-
-                for (size_t i = 0; i < size; i++) {
-                    ll.push_back(i); 
-                }
-
-                auto start = std::chrono::high_resolution_clock::now();
-                ll.remove(randgen(0, size - 1));
-                auto end = std::chrono::high_resolution_clock::now();
-
-                auto took = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-                std::print("{}, ", took);
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
             }
 
-            std::print("}}");
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                l2.remove(randgen(0, size - 1));
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("remove {} {}", size, took / runs_count);
+            took = 0;
         }
 
-        std::println();
+        size_t t;
+
+        for (size_t s = 0; s < sizes_count; s++) {     
+            size_t size = SIZES[s];
+
+            auto ll = T<int>::init();
+
+            for (size_t i = 0; i < size; i++) {
+                ll.push_front(i); 
+            }
+
+            for (size_t c = 0; c < runs_count; c++) {
+                auto l2 = ll.clone();
+                auto start = std::chrono::high_resolution_clock::now();
+                t = l2.search([size](int& x) { return x == (int)size / 2; }).value();
+                auto end = std::chrono::high_resolution_clock::now();
+
+                took += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::println("search {} {} with place {}", size, took / runs_count, t);
+            took = 0;
+        }
     }
 }
 
 auto main() -> int {
     //tests::ll_test();
     //tests::vec_test();
-    
-    benchmark::bench_ll();
+    //tests::sl_test();
+    benchmark::bench<SingleList>();
+    benchmark::bench<LinkedList>();
+    benchmark::bench<Vec>();
 
     return 0;
 }

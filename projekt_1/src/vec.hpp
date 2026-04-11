@@ -48,6 +48,10 @@ class Vec: public ICollection<T> {
         }
 
     public:
+        Vec& operator=(const Vec<T>&) = delete;
+        Vec(Vec<T>&&) noexcept = default;
+        Vec& operator=(Vec<T>&&) noexcept = default;
+
         static auto init() -> Vec<T> {
             Vec<T> v;
             
@@ -56,6 +60,24 @@ class Vec: public ICollection<T> {
             v.buffer = new T[v.cap];
 
             return v;
+        }
+
+        Vec clone() {
+            Vec result;
+
+            result.cap = this->cap;
+            result.len = this->len;
+
+            if (result.len == 0) {
+                result.cap = 256;
+                result.buffer = new T[result.cap];
+                return result;
+            }
+
+            result.buffer = new T[cap];
+            memory_move(result.buffer, this->buffer, this->len);
+
+            return result;
         }
 
         auto get_len() -> size_t {
@@ -184,9 +206,9 @@ class Vec: public ICollection<T> {
             return true;
         }
 
-        auto find(T& value) -> std::optional<size_t> {
+        auto search(std::function<bool(T&)> predicate) -> std::optional<size_t> {
             for (size_t i = 0; i < this->len; i++) {
-                if (this->buffer[i] == value) {
+                if (predicate(this->buffer[i])) {
                     return i;
                 } 
             }
