@@ -5,7 +5,7 @@
 
 auto randgen(int min, int max) -> int {
     static std::mt19937 rnd(time(nullptr));
-    return std::normal_distribution<>(min, max)(rnd);
+    return std::uniform_int_distribution<>(min, max)(rnd);
 }
 
 namespace tests {
