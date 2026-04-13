@@ -222,11 +222,11 @@ namespace benchmark {
     static size_t SIZES[] = {
         5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000,
         45000, 50000, 55000, 60000, 65000, 70000, 75000, 80000,
-        85000, 90000, 95000, 100000, 500000, 1000000, 5000000
+        85000, 90000, 95000, 100000
     };
 
     static size_t runs_count = 100;
-    static size_t sizes_count = 23;
+    static size_t sizes_count = 20;
 
     template<template<typename> class T>
     auto bench() -> void {
@@ -394,8 +394,12 @@ auto main() -> int {
     //tests::ll_test();
     //tests::vec_test();
     //tests::sl_test();
+    
+    std::println("[Single List]");
     benchmark::bench<SingleList>();
+    std::println("[Linked List]");
     benchmark::bench<LinkedList>();
+    std::println("[Vec]");
     benchmark::bench<Vec>();
 
     return 0;
